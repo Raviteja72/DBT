@@ -1,0 +1,36 @@
+version: 2
+
+models:
+  - name: dm_listings_cleaned
+    description: listings model
+    columns:
+      - name: listing_id
+        tests:
+          - unique
+          - not_null
+      - name: host_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dm_hosts_cleaned')
+              field: host_id
+      - name: room_type
+        tests:
+          - accepted_values:
+              values: [ 'Entire home/apt', 'Private room', 'Shared room', 'Hotel room' ]
+      - name: minimum_nights
+        description: '{{ doc("dm_listings_min_nights") }}'
+        tests:
+          - positive_value
+
+  - name: dm_listings_w_hosts
+    tests:
+      - dbt_expectations.expect_table_row_count_to_equal_other_table:
+          compare_model: source('airbnb','listings')
+    columns:
+      - name: price
+        tests:
+          - dbt_expectations.expect_column_quantile_values_to_be_between:
+              quantile: .99
+              min_value: 50
+              max_value: 500
